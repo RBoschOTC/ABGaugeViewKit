@@ -17,11 +17,18 @@ public class ABGaugeView: UIView {
     @IBInspectable public var areas: String = "20,20,20,20,20"
     @IBInspectable public var arcAngle: CGFloat = 2.4
     
+    private var oldValue = 0.0
+    
     @IBInspectable public var needleColor: UIColor = UIColor(red: 18/255.0, green: 112/255.0, blue: 178/255.0, alpha: 1.0)
     @IBInspectable public var needleValue: CGFloat = 0 {
         didSet {
             setNeedsDisplay()
         }
+    }
+    
+    public func updateNeedleValue(_ newValue: CGFloat) {
+        oldValue = needleValue
+        needleValue = newValue
     }
     
     @IBInspectable public var applyShadow: Bool = true {
@@ -210,9 +217,26 @@ public class ABGaugeView: UIView {
         let theD = (radians - thisRadians)/2
         firstAngle += theD
         let needleValue = radian(for: self.needleValue) + firstAngle
-        animate(triangleLayer: triangleLayer, shadowLayer: shadowLayer, fromValue: 0, toValue: needleValue*1.05, duration: 0.5) {
-            self.animate(triangleLayer: triangleLayer, shadowLayer: shadowLayer, fromValue: needleValue*1.05, toValue: needleValue*0.95, duration: 0.4, callBack: {
-                self.animate(triangleLayer: triangleLayer, shadowLayer: shadowLayer, fromValue: needleValue*0.95, toValue: needleValue, duration: 0.6, callBack: {})
+        let oldValue = radian(for: self.oldValue) + firstAngle
+        
+        var diff = (oldValue - needleValue)
+        if diff < 0 {
+            diff = -diff
+        }
+        
+        var mult = 1.0
+        if diff < 5 {
+            mult = 1.01
+        } else if diff < 20 {
+            mult = 1.025
+        } else {
+            mult = 1.05
+        }
+        let lessmult = 2 - mult
+        
+        animate(triangleLayer: triangleLayer, shadowLayer: shadowLayer, fromValue: oldValue, toValue: needleValue*mult, duration: 0.5) {
+            self.animate(triangleLayer: triangleLayer, shadowLayer: shadowLayer, fromValue: needleValue*mult, toValue: needleValue*lessmult, duration: 0.4, callBack: {
+                self.animate(triangleLayer: triangleLayer, shadowLayer: shadowLayer, fromValue: needleValue*lessmult, toValue: needleValue, duration: 0.6, callBack: {})
             })
         }
     }
